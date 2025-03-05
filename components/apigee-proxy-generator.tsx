@@ -69,17 +69,44 @@ export default function ApigeeProxyGenerator() {
 
       const parsedPolicy = await parsePolicyXml(fileContent)
 
-      // Add the new policy to the list
-      setPolicies([
-        ...policies,
-        {
-          name: policyName,
-          type: parsedPolicy.type || "unknown",
-          content: fileContent,
-          fileName: file.name,
-        },
-      ])
+      // Crear la nueva política
+      const newPolicy = {
+        name: policyName,
+        type: parsedPolicy.type || "unknown",
+        content: fileContent,
+        fileName: file.name,
+      }
+
+      // Agregar la política a la lista
+      setPolicies((prevPolicies) => [...prevPolicies, newPolicy])
       setPolicyUploaded(true)
+
+      // Si hay endpoints, asignar automáticamente esta política al PreFlow de todos los endpoints
+      if (endpoints.length > 0) {
+        const newAssignments: EndpointPolicy[] = []
+
+        endpoints.forEach((endpoint) => {
+          const endpointId = `${endpoint.method}-${endpoint.path}`
+
+          // Verificar que no exista ya esta asignación
+          if (
+            !endpointPolicies.some(
+              (ep) => ep.endpointId === endpointId && ep.policyId === policyName && ep.flow === "preflow",
+            )
+          ) {
+            newAssignments.push({
+              endpointId,
+              policyId: policyName,
+              flow: "preflow",
+            })
+          }
+        })
+
+        // Actualizar el estado con las nuevas asignaciones
+        if (newAssignments.length > 0) {
+          setEndpointPolicies((prev) => [...prev, ...newAssignments])
+        }
+      }
     } catch (error) {
       console.error("Error procesando archivo de política:", error)
       alert("Error procesando archivo de política. Por favor revise la consola para más detalles.")
@@ -87,7 +114,33 @@ export default function ApigeeProxyGenerator() {
   }
 
   const handleAssignPolicy = (endpointId: string, policyId: string, flow: "preflow" | "postflow") => {
-    // Check if this assignment already exists
+    // Caso especial para asignar a todos los endpoints
+    if (endpointId === "ALL") {
+      // Crear un array para almacenar las nuevas asignaciones
+      const newAssignments: EndpointPolicy[] = []
+
+      // Para cada endpoint, verificar si la política ya está asignada
+      endpoints.forEach((endpoint) => {
+        const epId = `${endpoint.method}-${endpoint.path}`
+
+        // Si la política no está asignada a este endpoint en este flujo, agregarla
+        if (!endpointPolicies.some((ep) => ep.endpointId === epId && ep.policyId === policyId && ep.flow === flow)) {
+          newAssignments.push({
+            endpointId: epId,
+            policyId,
+            flow,
+          })
+        }
+      })
+
+      // Actualizar el estado con todas las nuevas asignaciones
+      if (newAssignments.length > 0) {
+        setEndpointPolicies((prev) => [...prev, ...newAssignments])
+      }
+      return
+    }
+
+    // Comportamiento normal para un solo endpoint
     const existingAssignment = endpointPolicies.find(
       (ep) => ep.endpointId === endpointId && ep.policyId === policyId && ep.flow === flow,
     )
@@ -164,8 +217,7 @@ export default function ApigeeProxyGenerator() {
           <Card>
             <CardHeader>
               <CardTitle>Cargar Archivos</CardTitle>
-              {/* Updated message for file upload screen */}
-              <CardDescription>Sube tu definición OpenAPI y opcionalmente archivos de políticas</CardDescription>
+              <CardDescription>Sube tu definición OpenAPI y archivos de políticas</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
               <div className="grid gap-6 md:grid-cols-2">
@@ -178,7 +230,7 @@ export default function ApigeeProxyGenerator() {
 
                 <FileUploader
                   title="Subir Políticas XML"
-                  description="Sube archivos XML que contienen políticas de Apigee"
+                  description="Sube archivos XML que contienen políticas de Apigee (se asignarán automáticamente al PreFlow)"
                   acceptedFileTypes=".xml"
                   onFileUpload={handlePolicyUpload}
                   multiple={true}

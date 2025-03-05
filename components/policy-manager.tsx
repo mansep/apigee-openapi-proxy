@@ -18,7 +18,6 @@ interface PolicyManagerProps {
 
 export default function PolicyManager({ endpoints, policies, endpointPolicies, onAssignPolicy }: PolicyManagerProps) {
   const [expandedEndpoints, setExpandedEndpoints] = useState<Record<string, boolean>>({})
-  const [globalFlow, setGlobalFlow] = useState<"preflow" | "postflow">("preflow")
 
   const getEndpointId = (endpoint: Endpoint): string => {
     return `${endpoint.method}-${endpoint.path}`
@@ -69,82 +68,8 @@ export default function PolicyManager({ endpoints, policies, endpointPolicies, o
       .filter(Boolean) as Policy[]
   }
 
-  // Nueva función para asignar una política a todos los endpoints
-  const assignPolicyToAllEndpoints = (policyId: string, flow: "preflow" | "postflow") => {
-    endpoints.forEach((endpoint) => {
-      const endpointId = getEndpointId(endpoint)
-      if (!isPolicyAssigned(endpointId, policyId, flow)) {
-        onAssignPolicy(endpointId, policyId, flow)
-      }
-    })
-  }
-
   return (
     <div className="space-y-6">
-      {policies.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Asignar Políticas a Todos los Endpoints</CardTitle>
-            <CardDescription>Selecciona políticas para aplicar a todos los endpoints a la vez</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-4">
-              <Tabs value={globalFlow} onValueChange={(value) => setGlobalFlow(value as "preflow" | "postflow")}>
-                <TabsList className="w-full">
-                  <TabsTrigger value="preflow" className="flex-1">
-                    PreFlow
-                  </TabsTrigger>
-                  <TabsTrigger value="postflow" className="flex-1">
-                    PostFlow
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead className="w-[100px] text-right">Acción</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {policies.length > 0 ? (
-                    policies.map((policy, pIndex) => (
-                      <TableRow key={pIndex}>
-                        <TableCell>{policy.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={getPolicyTypeColor(policy.type)}>
-                            {policy.type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => assignPolicyToAllEndpoints(policy.name, globalFlow)}
-                          >
-                            <Plus className="h-4 w-4 mr-1" />
-                            Agregar a Todos
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
-                        No hay políticas disponibles
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
       {endpoints.length === 0 ? (
         <div className="rounded-md border p-6 text-center">
           <FileCode className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -205,7 +130,10 @@ export default function PolicyManager({ endpoints, policies, endpointPolicies, o
                                   <Button
                                     variant="destructive"
                                     size="sm"
-                                    onClick={() => onAssignPolicy(endpointId, policy.name, "preflow")}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      onAssignPolicy(endpointId, policy.name, "preflow")
+                                    }}
                                   >
                                     <Minus className="h-4 w-4 mr-1" />
                                     Quitar
@@ -248,7 +176,10 @@ export default function PolicyManager({ endpoints, policies, endpointPolicies, o
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          onClick={() => onAssignPolicy(endpointId, policy.name, "preflow")}
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            onAssignPolicy(endpointId, policy.name, "preflow")
+                                          }}
                                         >
                                           <Plus className="h-4 w-4 mr-1" />
                                           Agregar
@@ -286,7 +217,10 @@ export default function PolicyManager({ endpoints, policies, endpointPolicies, o
                                   <Button
                                     variant="destructive"
                                     size="sm"
-                                    onClick={() => onAssignPolicy(endpointId, policy.name, "postflow")}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      onAssignPolicy(endpointId, policy.name, "postflow")
+                                    }}
                                   >
                                     <Minus className="h-4 w-4 mr-1" />
                                     Quitar
@@ -329,7 +263,10 @@ export default function PolicyManager({ endpoints, policies, endpointPolicies, o
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          onClick={() => onAssignPolicy(endpointId, policy.name, "postflow")}
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            onAssignPolicy(endpointId, policy.name, "postflow")
+                                          }}
                                         >
                                           <Plus className="h-4 w-4 mr-1" />
                                           Agregar
